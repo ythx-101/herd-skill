@@ -2,6 +2,10 @@
 
 [中文说明](README.zh-CN.md)
 
+[![herd promo film (52 s, Chinese)](media/herd-promo-poster.jpg)](media/herd-promo-zh.mp4)
+
+Click for the promo film (52 s, in Chinese). It was made by Claude Code and Antigravity agents coordinated with herd. Motion: [Sakuga VFX](https://github.com/finktheartist/sakuga-vfx) by @crtvTeknologist, MIT license.
+
 An agent skill for coordinating several coding agents with [herdr](https://herdr.dev), across one machine or many. One agent is the coordinator. It checks model quota, writes a brief, starts workers in herdr panes, and talks to them through a plain JSONL message board. A small watcher wakes whoever is @mentioned and tells the coordinator when the deadline passes, the board goes quiet, or a worker runs out of quota. Work counts as finished only when the worker posts `[done]` and the check commands in the brief pass.
 
 ```

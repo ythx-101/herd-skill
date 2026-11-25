@@ -2,6 +2,10 @@
 
 [English](README.md)
 
+[![herd 宣传片（52 秒，中文）](media/herd-promo-poster.jpg)](media/herd-promo-zh.mp4)
+
+点图看宣传片（52 秒，中文）。这条片子本身就是用 herd 调度 Claude Code 和 Antigravity 做的。动效：[Sakuga VFX](https://github.com/finktheartist/sakuga-vfx)，作者 @crtvTeknologist，MIT 许可。
+
 一个给协调者 agent 用的技能：用 [herdr](https://herdr.dev) 指挥多个编码 agent 一起干活，可以在一台机器上，也可以跨多台机器。协调者先测模型额度，写任务书，在 herdr 窗格里起 worker，然后通过一块 JSONL 公告板和它们传话。一个小守护进程负责唤醒被 @ 的成员，并在到截止时间、公告板长时间没动静、某个 worker 额度用完时提醒协调者。只有 worker 发了 `[done]` 帖，并且任务书里的检查命令全部通过，才算完成。
 
 ```
