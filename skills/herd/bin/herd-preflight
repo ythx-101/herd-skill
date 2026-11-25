@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# herd-preflight <machine> <model...>
+# Send a very short ping to each model before handing out work.
+# machine: "local" or an ssh host. Prints one line per model:
+#   <model> ok | quota | no-capacity | timeout | error(...)
+# Exit status is 0 only when every model answered ok.
+#
+# HERD_PING_CMD     command template; {model} is replaced by the shell-quoted model name.
+#                   Default (Antigravity CLI):
+#                     agy -p 'Reply with exactly: pong' --model {model} --dangerously-skip-permissions
+#                   Example for Claude Code:
+#                     claude -p 'Reply with exactly: pong' --model {model}
+# HERD_PING_EXPECT  word that must appear in a good answer (default pong)
+# HERD_PING_TIMEOUT seconds per model (default 60)
+# HERD_PING_CWD     directory to run in on that machine (default: home)
+[ $# -ge 2 ] || { echo "usage: herd-preflight <machine> <model...>" >&2; exit 2; }
+m=$1; shift; bad=0
+tpl=${HERD_PING_CMD:-"agy -p 'Reply with exactly: pong' --model {model} --dangerously-skip-permissions"}
+expect=${HERD_PING_EXPECT:-pong}; to=${HERD_PING_TIMEOUT:-60}
+cwd=${HERD_PING_CWD:-}
+for model in "$@"; do
+  ping=${tpl//\{model\}/$(printf %q "$model")}
+  case $cwd in "") go="cd ~" ;; "~/"*) go="cd ~/$(printf %q "${cwd#\~/}") 2>/dev/null || cd ~" ;; *) go="cd $(printf %q "$cwd") 2>/dev/null || cd ~" ;; esac
+  cmd="$go; timeout $to $ping 2>&1"
+  if [ "$m" = local ]; then out=$(bash -c "$cmd"); rc=$?; else out=$(ssh -o BatchMode=yes "$m" "$cmd"); rc=$?; fi
+  if [ $rc -eq 124 ]; then r=timeout
+  elif grep -qiE 'quota reached|RESOURCE_EXHAUSTED|exhausted your quota' <<<"$out"; then r=quota
+  elif grep -qiE 'no capacity|503' <<<"$out" && ! grep -qiF -- "$expect" <<<"$out"; then r=no-capacity
+  elif [ $rc -eq 0 ] && grep -qiF -- "$expect" <<<"$out"; then r=ok
+  else r="error(rc=$rc): $(tr '\n' ' ' <<<"$out" | cut -c1-120)"; fi
+  [ "$r" = ok ] || bad=1
+  printf '%-32s %s\n' "$model" "$r"
+done
+exit $bad

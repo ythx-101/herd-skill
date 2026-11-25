@@ -1,0 +1,10 @@
+{
+  "project": "<project name>",
+  "coordinator": {"machine": "local", "pane": "<coordinator pane id, e.g. w1:p1>"},
+  "deadline_utc": "2030-01-01T09:00:00Z",
+  "stall_minutes": 15,
+  "members": {
+    "builder": {"machine": "box-a", "agent": "builder"},
+    "checker": {"machine": "local", "agent": "checker"}
+  }
+}

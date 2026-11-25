@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# herd-read <project> [--since N] [--json]
+# Print board posts with seq > N (default 0). --json prints the raw JSONL records.
+# <project>: a path, or a bare name resolved under $HERD_ROOT (default ~/herd).
+set -euo pipefail
+[ $# -ge 1 ] || { echo "usage: herd-read <project> [--since N] [--json]" >&2; exit 2; }
+case $1 in /*|./*|../*|.) dir=$1 ;; "~/"*) dir="$HOME/${1#\~/}" ;; *) dir="${HERD_ROOT:-$HOME/herd}/$1" ;; esac
+shift; since=0; js=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    --since) [ $# -ge 2 ] || { echo "herd-read: --since needs a number" >&2; exit 2; }; since=$2; shift 2 ;;
+    --json) js=1; shift ;;
+    *) echo "herd-read: bad arg $1" >&2; exit 2 ;;
+  esac
+done
+board="$dir/board.jsonl"; [ -f "$board" ] || exit 0
+python3 - "$board" "$since" "$js" <<'PY'
+import json, sys
+b, since, js = sys.argv[1], int(sys.argv[2]), sys.argv[3] == '1'
+for line in open(b, encoding='utf-8'):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        r = json.loads(line)
+    except Exception:
+        continue
+    if int(r.get('seq', 0)) <= since:
+        continue
+    print(json.dumps(r, ensure_ascii=False) if js else f"#{r['seq']} {r['time']} {r['agent']}: {r['text']}")
+PY

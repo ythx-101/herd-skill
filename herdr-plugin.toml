@@ -1,0 +1,14 @@
+id = "ythx-101.herd-board"
+name = "Herd Board"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Popup that follows the herd skill's JSONL message board"
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "board"
+title = "Herd board"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["bash", "plugin/board.sh"]

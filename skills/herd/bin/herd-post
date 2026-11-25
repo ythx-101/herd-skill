@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# herd-post <project> <author> <text...|->
+# Append {seq,time,agent,text} to <project>/board.jsonl and print the new seq.
+# <project>: a path, or a bare name resolved under $HERD_ROOT (default ~/herd).
+# Text "-" reads the post body from stdin (safe for quotes, $ and newlines over ssh).
+set -euo pipefail
+[ $# -ge 3 ] || { echo "usage: herd-post <project> <author> <text...|->" >&2; exit 2; }
+case $1 in /*|./*|../*|.) dir=$1 ;; "~/"*) dir="$HOME/${1#\~/}" ;; *) dir="${HERD_ROOT:-$HOME/herd}/$1" ;; esac
+who=$2; shift 2
+if [ "$*" = "-" ]; then text=$(cat); else text="$*"; fi
+[ -n "$text" ] || { echo "herd-post: empty text" >&2; exit 2; }
+mkdir -p "$dir"; board="$dir/board.jsonl"; touch "$board"
+exec 9>"$dir/.board.lock"
+flock -w 30 9 || { echo "herd-post: lock timeout" >&2; exit 1; }
+python3 - "$board" "$who" "$text" <<'PY'
+import json, sys, datetime
+b, who, text = sys.argv[1:4]
+seq = 0
+with open(b, encoding='utf-8') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            seq = max(seq, int(json.loads(line).get('seq', 0)))
+        except Exception:
+            pass
+seq += 1
+rec = {"seq": seq,
+       "time": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+       "agent": who, "text": text}
+with open(b, 'a', encoding='utf-8') as f:
+    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    f.flush()
+print(seq)
+PY
